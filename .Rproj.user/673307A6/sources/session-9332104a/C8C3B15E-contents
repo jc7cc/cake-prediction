@@ -1,0 +1,47 @@
+---
+title: "cake 预测数据分析"
+date: "2023-01-10"
+output:
+  pdf_document:
+    latex_engine: xelatex
+  html_document: default
+---
+
+```{r setup, include=FALSE, message=FALSE, echo=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE)
+```
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+dta <- read_csv("./cake_data.csv")
+dta <- dta %>% 
+  mutate(
+    lock_price = lock_price * 10 ** -8,
+    round_oracle_time_diff = close_timestamp - oracle_close_timestamp,
+    oracle_close_prev_diff = oracle_close_timestamp - oracle_prev_timestamp
+    )
+```
+
+## 回合结束时间 - 预言机数据更新时间
+
+回合结束时间平均比预言机最后一次更新时间晚`r mean(dta$round_oracle_time_diff)`秒。数据分布不集中，没有明显的规律，不是稳定值。
+
+```{r}
+ggplot(data = dta, aes(x = round_oracle_time_diff)) + 
+  geom_histogram(bins = 50) + 
+  theme_bw()
+```
+
+### 预言机数据更新间隔
+
+预言机更新间隔的平均值为`r mean(dta$oracle_close_prev_diff)`秒。数据分布集中，是稳定值。
+
+```{r}
+ggplot(data = dta, aes(x = oracle_close_prev_diff)) + 
+  geom_histogram(bins = 15) + 
+  theme_bw()
+```
+
