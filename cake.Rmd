@@ -2,8 +2,6 @@
 title: "cake 预测数据分析"
 date: "2023-01-10"
 output:
-  pdf_document:
-    latex_engine: xelatex
   html_document: default
 ---
 
@@ -27,7 +25,7 @@ dta <- dta %>%
 
 ## 回合结束时间 - 预言机数据更新时间
 
-回合结束时间平均比预言机最后一次更新时间晚`r mean(dta$round_oracle_time_diff)`秒。数据分布不集中，没有明显的规律，不是稳定值。
+回合结束时间平均比预言机最后一次更新时间晚`r mean(dta$round_oracle_time_diff)`秒。数据分布不集中，没有明显的规律，不稳定。
 
 ```{r}
 ggplot(data = dta, aes(x = round_oracle_time_diff)) + 
@@ -43,5 +41,47 @@ ggplot(data = dta, aes(x = round_oracle_time_diff)) +
 ggplot(data = dta, aes(x = oracle_close_prev_diff)) + 
   geom_histogram(bins = 15) + 
   theme_bw()
+```
+
+### 比较预言机价格与币安
+
+币安价格取的是包含预言机更新时间那一分钟的k线，其中有那一分钟的最高价和最低价。
+
+985局中，有255局预言机价格与币安最高价差距小于0.001,有290局与币安最低价差距小于0.001。
+
+```{r}
+dta %>% 
+  group_by(epoch) %>% 
+  summarise(
+    oracleClose_binanceMax = binance_max_price - lock_price,
+    oracleClose_binanceMin = binance_min_price - lock_price,
+    oracleClose_binanceMax_four_decimal = abs(oracleClose_binanceMax) < 0.001,
+     oracleClose_binanceMin_four_decimal = abs(oracleClose_binanceMin) < 0.001
+  ) %>% 
+  summarise(
+    oracleClose_binanceMax_four_decimal_n = sum(oracleClose_binanceMax_four_decimal),
+    oracleClose_binanceMin_four_decimal_n = sum(oracleClose_binanceMin_four_decimal),
+    )
+
+```
+下图是57293到57436这一百场的价格。黑色是预言机价格，红色是币安最高价，蓝色是币安最低价。黑线不一定在红线和蓝线之间。
+
+```{r}
+price <- dta %>% 
+  group_by(epoch) %>% 
+  summarise(
+    oracleClose_binanceMax = binance_max_price - lock_price,
+    oracleClose_binanceMin = binance_min_price - lock_price,
+    oracleClose_binanceMax_four_decimal = abs(oracleClose_binanceMax) < 0.001,
+     oracleClose_binanceMin_four_decimal = abs(oracleClose_binanceMin) < 0.001
+  )
+dta_100  <- dta %>% head(100)
+ggplot(data = dta_100) +
+  geom_line(aes(x = epoch, y = lock_price)) + 
+  geom_line(aes(x = epoch, y = binance_max_price), color = 'red') +
+  geom_line(aes(x = epoch, y = binance_min_price), color = 'blue') +
+  theme_bw() +
+  ylab('price')
+summary(dta_100$epoch)
 ```
 
